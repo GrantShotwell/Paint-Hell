@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f4185c62659af4f4b8434ae18e14319c, type: 3}
+  m_Name: Wandering Walk Right
+  m_EditorClassIdentifier: 
+  color: {r: 0.5019608, g: 0.5019608, b: 0.5019608, a: 1}
+  actions:
+  - {fileID: 11400000, guid: a4806b9218be2aa469a6daeeeb43143b, type: 2}
+  transitions:
+  - decision: {fileID: 11400000, guid: e67f2a2c3c2b1a1498ae2dd48eed0fe8, type: 2}
+    trueState: {fileID: 11400000, guid: 315f2e49dc9fc9a4bbfdee450a8cb8a5, type: 2}
+    falseState: {fileID: 0}
