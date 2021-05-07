@@ -1,5 +1,21 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
+--- !u!58 &7559172382876599349
+CircleCollider2D:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7673713616069824612}
+  m_Enabled: 1
+  m_Density: 1
+  m_Material: {fileID: 0}
+  m_IsTrigger: 1
+  m_UsedByEffector: 0
+  m_UsedByComposite: 0
+  m_Offset: {x: 0, y: 0.4}
+  serializedVersion: 2
+  m_Radius: 15
 --- !u!114 &4537479426943783939
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -99,6 +115,22 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5006255691767559531, guid: f0a23a44b29c6844a9271e0f6d229872, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5006255691767559535, guid: f0a23a44b29c6844a9271e0f6d229872, type: 3}
+      propertyPath: team
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5006255691767559535, guid: f0a23a44b29c6844a9271e0f6d229872, type: 3}
+      propertyPath: color.b
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5006255691767559535, guid: f0a23a44b29c6844a9271e0f6d229872, type: 3}
+      propertyPath: color.g
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5006255691767559535, guid: f0a23a44b29c6844a9271e0f6d229872, type: 3}
+      propertyPath: color.r
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 5006255691767559535, guid: f0a23a44b29c6844a9271e0f6d229872, type: 3}

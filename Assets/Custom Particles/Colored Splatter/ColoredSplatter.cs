@@ -11,13 +11,25 @@ public class ColoredSplatter : Decal {
 	public Color color = Color.white;
 	public Vector2 direction = Vector2.zero;
 
+	public float colorMultiplier = 0.80f;
+	public float alphaMultiplier = 0.50f;
+
 	public bool sendForward = true;
 	new SpriteRenderer renderer;
+
+	void OnValidate() {
+		if(renderer || (renderer = GetComponent<SpriteRenderer>())) {
+			SetColor();
+			if(sprites.Count >= 1 && !renderer.sprite) {
+				renderer.sprite = sprites[0];
+			}
+		}
+	}
 
 	void Start() {
 
 		renderer = GetComponent<SpriteRenderer>();
-		renderer.color = color;
+		SetColor();
 		renderer.sortingOrder = GetNextTileDecalLayer();
 
 		if(sprites.Count > 0) {
@@ -53,11 +65,28 @@ public class ColoredSplatter : Decal {
 	}
 
 	void Update() {
-		renderer.color = color;
+		//SetColor();
+	}
+
+	public void SetColor() {
+		renderer.color = new Color(color.r * colorMultiplier, color.g * colorMultiplier, color.b * colorMultiplier, color.a * alphaMultiplier);
 	}
 
 	void Dispose() {
+		StartCoroutine(FadeOutCoroutine());
+	}
+
+	private IEnumerator FadeOutCoroutine() {
+
+		while(renderer.color.a > 0.05f) {
+			Color color = renderer.color;
+			color.a -= 0.05f;
+			renderer.color = color;
+			yield return new WaitForSeconds(0.05f);
+		}
+
 		Destroy(gameObject);
+
 	}
 
 }

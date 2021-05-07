@@ -1,4 +1,5 @@
 using FiniteStateAi;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -9,11 +10,8 @@ public class PlayeroidAiController : StateController {
 	[Range(0f, 30f)]
 	public float viewRadius = 15f;
 
-	private readonly ICollection<GameObject> reactingGameObjects = new HashSet<GameObject>();
-	public IReadOnlyCollection<GameObject> ReactingGameObjects => (IReadOnlyCollection<GameObject>)reactingGameObjects;
-
-	private readonly ICollection<GameObject> reactedGameObjects = new HashSet<GameObject>();
-	public IReadOnlyCollection<GameObject> ReactedGameObjects => (IReadOnlyCollection<GameObject>)reactedGameObjects;
+	private readonly HashSet<GameObject> reactingGameObjects = new HashSet<GameObject>();
+	private readonly HashSet<GameObject> reactedGameObjects = new HashSet<GameObject>();
 
 	public PlayerController player { get; private set; }
 
@@ -26,7 +24,7 @@ public class PlayeroidAiController : StateController {
 
 	private void Update() {
 
-		player.renderer.color = current.color;
+		//player.color = current.color;
 		player.StandardUpdate();
 
 	}
@@ -37,45 +35,62 @@ public class PlayeroidAiController : StateController {
 		//   player.mouseWorldPosition
 		//   player.movement
 
-		ReviewReactedGameObjects();
 		current.TriggerUpdateActions(this);
 		current.CheckTransitions(this);
+
+		float distance = float.PositiveInfinity;
+		bool targetedSomething = false;
+		foreach(GameObject gameObject in reactedGameObjects) {
+			PlayerController player = gameObject.GetComponent<PlayerController>();
+			float d = Vector2.Distance(transform.position, player.transform.position);
+			if(this.player.team != player.team && d < distance) {
+				distance = d;
+				this.player.mouseWorldPosition = (Vector2)player.transform.position + new Vector2(0f, player.collider.size.y / 2f);
+				targetedSomething = true;
+			}
+		}
+
+		if(targetedSomething && player.CanFirePrimary()) {
+			player.FirePrimary();
+		}
 
 		// Execute standard player controller update.
 		player.StandardFixedUpdate();
 
 	}
 
-	private bool CheckCanSeeGameObject(GameObject go) {
-		// Since players can see through walls, so should the AI.
-		// Simple check to see if GameObject is within view radius.
-		Vector2 vectorTo = transform.position - go.transform.position;
-		return vectorTo.magnitude <= viewRadius;
+	private void OnTriggerEnter2D(Collider2D collider) {
+		GameObject gameObject = collider.attachedRigidbody.gameObject;
+		if(!reactingGameObjects.Contains(gameObject) && !reactedGameObjects.Contains(gameObject)) {
+			if(WillReactTo(gameObject)) StartReactingToGameObject(gameObject);
+		}
 	}
 
-	private void ReviewUnreactedGameObject(GameObject go) {
-		// Throw exception for invalid usage of this method.
-		if(reactingGameObjects.Contains(go)) throw new System.InvalidOperationException($"GameObject '{go.name}' has already been reacted to!");
-		// Simple logic for adding reacted GameObject.
-		if(CheckCanSeeGameObject(go)) StartReactingToGameObject(go);
+	private void OnTriggerExit2D(Collider2D collider) {
+		GameObject gameObject = collider.attachedRigidbody.gameObject;
+		reactedGameObjects.Remove(gameObject);
+		reactingGameObjects.Remove(gameObject);
 	}
 
-	private void ReviewReactedGameObjects() {
-		// Queue objects to remove, because enumerables cannot be modified during enumeration.
-		ICollection<GameObject> removal = new List<GameObject>(reactedGameObjects.Count);
-		foreach(var go in reactedGameObjects) if(!CheckCanSeeGameObject(go)) removal.Add(go);
-		// Remove objects queued to be removed.
-		foreach(var go in removal) reactedGameObjects.Remove(go);
+	/// <summary>
+	/// Tests if <paramref name="gameObject"/> is something the AI considers worth tracking.
+	/// </summary>
+	/// <param name="gameObject">The <see cref="GameObject"/> to test.</param>
+	/// <returns>Returns <see langword="true"/> if the AI will track this object.</returns>
+	public bool WillReactTo(GameObject gameObject) {
+		if(gameObject.GetComponentInParent<PlayerController>()) return true;
+		return false;
 	}
 
-	private void StartReactingToGameObject(GameObject go) {
+	private void StartReactingToGameObject(GameObject gameObject) {
 		// GameObject needs to be added to a collection so that it is not queued to be reacted to twice.
-		reactingGameObjects.Add(go);
+		reactingGameObjects.Add(gameObject);
 		// RNJesus uses the current difficulty settings to determine reaction times.
 		StaticMonobehaviours.RNJesus.QueueComputerReaction(() => {
+			// Make sure object is still 'reacting' (not deleted or out of view circle).
 			// Move GameObject from 'queued reaction' to 'finished reacton'.
-			reactingGameObjects.Remove(go);
-			reactedGameObjects.Add(go);
+			bool reacting = reactingGameObjects.Remove(gameObject);
+			if(reacting) reactedGameObjects.Add(gameObject);
 		});
 	}
 

@@ -9,20 +9,11 @@ public class WallRightDecision : WallAheadDecision {
 	public override bool Decide(StateController controller) {
 
 		var playeroid = controller as PlayeroidAiController;
-		if(!playeroid) {
-			Debug.LogError($"Cannot use this decision with the '{controller.GetType().Name}' controller!");
-			return false;
-		}
+		if(!playeroid) return LogErrorWrongController(this, controller);
 
 		var player = playeroid.player;
 		Vector2 direction = Vector2.right;
-		RaycastHit2D hit = TestWall(player, direction, distance, layers);
-
-		if(hit) {
-			return true;
-		} else {
-			return false;
-		}
+		return TestWall(player, direction, distance, layers);
 
 	}
 

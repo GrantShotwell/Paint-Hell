@@ -79,5 +79,5 @@ SpriteMask:
   m_BackSortingLayer: 7
   m_FrontSortingOrder: 32767
   m_BackSortingOrder: -32767
-  m_IsCustomRangeActive: 0
+  m_IsCustomRangeActive: 1
   m_SpriteSortPoint: 0

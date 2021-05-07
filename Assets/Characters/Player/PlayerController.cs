@@ -9,76 +9,96 @@ using UnityEngine.U2D.Animation;
 [RequireComponent(typeof(BoxCollider2D))]
 [RequireComponent(typeof(Animator))]
 [RequireComponent(typeof(SpriteSkin))]
-public class PlayerController : MonoBehaviour
-{
+public class PlayerController : MonoBehaviour, IRespawnable {
 
-    [Header("Testing")]
-    public GameObject targetEnemy;
+	[Header("Team")]
+	public int team;
+	int IRespawnable.team => team;
 
-    [Header("Lighting")]
-    new public Light2D light;
+	[Header("Respawning")]
+	public RespawnManager respawnManager;
+	public float respawnWaitTime = 3.0f;
 
-    [Header("Splatter")]
-    public GameObject splatterPrefab;
-    [Range(0, 50)]
-    public int splatterCount = 16;
-    [Range(0, 90)]
-    public float splatterRange = 45f;
-    [Range(0, 25)]
-    public float splatterDistance = 10f;
+	[Header("Lighting")]
+	new public Light2D light;
 
-    [Header("Spray")]
-    public GameObject sprayPrefab;
-    [Range(0, 20)]
-    public int sprayCount = 3;
-    [Range(0, 90)]
-    public float sprayRange = 15f;
-    [Range(0, 10)]
-    public float sprayDistance = 3f;
+	[Header("Splatter")]
+	public GameObject splatterPrefab;
+	[Range(0, 50)]
+	public int splatterCount = 16;
+	[Range(0, 90)]
+	public float splatterRange = 45f;
+	[Range(0, 25)]
+	public float splatterDistance = 10f;
 
-    [Header("Arms & Gun Positioning")]
-    public Transform rightArm;
-    public Transform leftArm;
-    public Transform gun;
-    public Transform gunPivot;
-    [Range(0f, 1f)]
-    public float gunLength;
+	[Header("Spray")]
+	public GameObject sprayPrefab;
+	[Range(0, 20)]
+	public int sprayCount = 3;
+	[Range(0, 90)]
+	public float sprayRange = 15f;
+	[Range(0, 10)]
+	public float sprayDistance = 3f;
 
-    [Header("Projectile")]
-    public GameObject projectilePrefab;
-    [Range(0f, 50f)]
-    public float projectileSpeed = 10f;
-    [Range(0, 10)]
-    public int projectileDamage = 1;
+	[Header("Visuals")]
+	public Color color = Color.blue;
+	public ParticleSystem reloadBurstEmitter;
 
-    [Header("Ground Movement")]
-    [Range(0f, 10f)]
-    public float runSpeed = 5.0f;
+	[Header("Arms & Gun Positioning")]
+	public Transform rightArm;
+	public Transform leftArm;
+	public Transform gun;
+	public Transform gunPivot;
+	[Range(0f, 1f)]
+	public float gunLength;
 
-    [Header("Jumping")]
-    [Range(0f, 10f)]
-    public float jumpPower = 5.0f;
-    [Range(0f, 10f)]
-    public float magicFallForce = 1.0f;
+	[Header("Projectile")]
+	public GameObject projectilePrefab;
+	[Range(0f, 50f)]
+	public float projectileSpeed = 10f;
+	[Range(0, 10)]
+	public int projectileDamage = 1;
 
-    [Header("Airtime Drifting")]
-    [Range(0f, 10f)]
-    public float driftForce = 1.0f;
-    [Range(0f, 10f)]
-    public float driftTime = 3.0f;
-    public AnimationCurve driftCurve;
+	[Header("Fire Rate")]
+	public float burstPeriod = 4.2f;
+	public int burstCount = 3;
+	public float fireDelay = 0.8f;
 
-    [Header("Wall Movement")]
-    public Vector2 wallJumpSpeed = new Vector2(5.0f, 5.0f);
-    [Range(0f, 10f)]
-    public float slideSpeed0 = 1.5f;
-    [Range(0f, 10f)]
-    public float slideSpeed1 = 4.0f;
-    [Range(0f, 10f)]
-    public float slideSpeed2 = 8.0f;
+	[Header("Ground Movement")]
+	[Range(0f, 10f)]
+	public float runSpeed = 5.0f;
 
-    [HideInInspector]
-    public Movement movement;
+	[Header("Jumping")]
+	[Range(0f, 10f)]
+	public float jumpPower = 5.0f;
+	[Range(0f, 10f)]
+	public float magicFallForce = 1.0f;
+
+	[Header("Airtime Drifting")]
+	[Range(0f, 10f)]
+	public float driftForce = 1.0f;
+	[Range(0f, 10f)]
+	public float driftTime = 3.0f;
+	public AnimationCurve driftCurve;
+
+	[Header("Wall Movement")]
+	public Vector2 wallJumpSpeed = new Vector2(5.0f, 5.0f);
+	[Range(0f, 10f)]
+	public float slideSpeed0 = 1.5f;
+	[Range(0f, 10f)]
+	public float slideSpeed1 = 4.0f;
+	[Range(0f, 10f)]
+	public float slideSpeed2 = 8.0f;
+
+	[HideInInspector]
+	public float lastBurst = float.NegativeInfinity;
+	[HideInInspector]
+	public float lastFire = float.NegativeInfinity;
+	[HideInInspector]
+	public int currentBurstCount = 0;
+
+	[HideInInspector]
+	public Movement movement;
 
 	[HideInInspector]
 	public bool facingRight = true;
@@ -98,11 +118,11 @@ public class PlayerController : MonoBehaviour
 	[HideInInspector]
 	public bool sentWalledTrigger = false;
 
-    [HideInInspector]
-    public Vector2 mouseWorldPosition;
+	[HideInInspector]
+	public Vector2 mouseWorldPosition;
 
 	[HideInInspector]
-    new public Rigidbody2D rigidbody;
+	new public Rigidbody2D rigidbody;
 	[HideInInspector]
 	new public BoxCollider2D collider;
 	[HideInInspector]
@@ -112,24 +132,28 @@ public class PlayerController : MonoBehaviour
 	[HideInInspector]
 	public SpriteSkin skin;
 
-    void OnValidate() {
+	void OnValidate() {
 
-    }
+	}
 
-    // Start is called before the first frame update
-    public void Start() {
+	// Start is called before the first frame update
+	public void Start() {
 
-        rigidbody = GetComponent<Rigidbody2D>();
-        collider = GetComponent<BoxCollider2D>();
-        renderer = GetComponent<SpriteRenderer>();
-        animator = GetComponent<Animator>();
-        skin = GetComponent<SpriteSkin>();
+		rigidbody = GetComponent<Rigidbody2D>();
+		collider = GetComponent<BoxCollider2D>();
+		renderer = GetComponent<SpriteRenderer>();
+		animator = GetComponent<Animator>();
+		skin = GetComponent<SpriteSkin>();
 
-    }
+		if(!respawnManager) respawnManager = StaticMonobehaviours.RespawnManager;
+
+		renderer.color = color;
+
+	}
 
 	void Update() {
-        mouseWorldPosition = Camera.main.ScreenToWorldPoint(Mouse.current.position.ReadValue());
-    }
+		mouseWorldPosition = Camera.main.ScreenToWorldPoint(Mouse.current.position.ReadValue());
+	}
 
 	public void StandardUpdate() {
 		light.color = renderer.color;
@@ -143,6 +167,18 @@ public class PlayerController : MonoBehaviour
 		ApplyMovementInputs(true);
 		PositionGunAndArms();
 		UpdateAnimationVariables();
+	}
+
+	public void Respawn(Vector2 at) {
+		transform.position = new Vector3(at.x, at.y, transform.position.z);
+		gameObject.SetActive(true);
+	}
+
+	public void Despawn() {
+		gameObject.SetActive(false);
+		if(respawnManager) {
+			respawnManager.RequestRespawnDelayed(this, respawnWaitTime);
+		}
 	}
 
 	private void ApplyMovementInputs(bool validate) {
@@ -281,7 +317,7 @@ public class PlayerController : MonoBehaviour
 
 		// Pivot direction.
 		Vector3 pivotRot = gunPivot.localRotation.eulerAngles;
-		Vector2 mousePos = (Vector2)transform.position - mouseWorldPosition;
+		Vector2 mousePos = (Vector2)transform.position + Vector2.up * collider.size.y / 2f - mouseWorldPosition;
 		pivotRot.z = Mathf.Atan2(mousePos.y, mousePos.x) * Mathf.Rad2Deg + 180f;
 		gunPivot.rotation = Quaternion.Euler(pivotRot);
 
@@ -381,109 +417,173 @@ public class PlayerController : MonoBehaviour
 
 	private GameObject CreateProjectile() {
 
-        GameObject projectile = Instantiate(projectilePrefab);
-        projectile.name = $"{gameObject.name} {projectilePrefab.name}";
-        projectile.transform.position = gun.position;
-        projectile.transform.rotation = gun.rotation;
+		GameObject projectile = Instantiate(projectilePrefab);
+		projectile.name = $"{gameObject.name} {projectilePrefab.name}";
+		projectile.transform.position = gun.position;
+		projectile.transform.rotation = gun.rotation;
 
-        Projectile projectileComponent = projectile.GetComponent<Projectile>();
-        if(projectileComponent) {
-            float angle = gun.rotation.eulerAngles.z * Mathf.Deg2Rad;
-            projectileComponent.creator = GetComponent<Collider2D>();
-            projectileComponent.velocity = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * projectileSpeed;
-            projectileComponent.OnBreak.AddListener((GameObject go, Vector2 point) => {
-				var splatter = CreateSplatter();
-                splatter.sendForward = false;
+		Projectile projectileComponent = projectile.GetComponent<Projectile>();
+		if(projectileComponent) {
+			float angle = gun.rotation.eulerAngles.z * Mathf.Deg2Rad;
+			projectileComponent.creator = gameObject;
+			projectileComponent.team = team;
+			projectileComponent.velocity = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * projectileSpeed;
+			projectileComponent.OnBreak.AddListener((GameObject go, Vector2 point) => {
+				ColoredSplatter splatter = CreateSplatter();
+				splatter.sendForward = false;
 				splatter.direction = projectileComponent.velocity;
-                splatter.transform.position = point;
-                splatter.transform.rotation = projectile.transform.rotation;
-            });
-        }
+				splatter.transform.position = point;
+				splatter.transform.rotation = projectile.transform.rotation;
+			});
+			projectileComponent.OnDamage.AddListener((GameObject go, Vector2 point) => {
+				Healthbar healthbar = go.GetComponent<Healthbar>();
+				if(healthbar && healthbar.current <= 0 && StaticMonobehaviours.GameStarterController) StaticMonobehaviours.GameStarterController.teamScores[team]++;
+			});
+		}
 
 		SpriteRenderer projectileRenderer = projectile.GetComponent<SpriteRenderer>();
-        if(projectileRenderer) {
-            projectileRenderer.color = renderer.color;
-        }
-        return projectile;
+		if(projectileRenderer) {
+			projectileRenderer.color = color;
+		}
+		return projectile;
 
 	}
 
-    private ColoredSplatter CreateSplatter() {
+	private ColoredSplatter CreateSplatter() {
 
-        GameObject splatter = Instantiate(splatterPrefab);
-        splatter.name = $"{gameObject.name} {splatterPrefab.name}";
-        splatter.transform.position = transform.position;
-        ColoredSplatter component = splatter.GetComponent<ColoredSplatter>();
-        component.color = renderer.color;
-        return component;
-
-	}
-
-    private ColoredSpray CreateSpray() {
-
-        GameObject spray = Instantiate(sprayPrefab);
-        spray.name = $"{gameObject.name} {sprayPrefab.name}";
-        spray.transform.position = transform.position;
-        ColoredSpray component = spray.GetComponent<ColoredSpray>();
-        component.color = renderer.color;
-        component.distance = sprayDistance;
-        return component;
+		GameObject splatter = Instantiate(splatterPrefab);
+		splatter.name = $"{gameObject.name} {splatterPrefab.name}";
+		splatter.transform.position = transform.position;
+		ColoredSplatter component = splatter.GetComponent<ColoredSplatter>();
+		component.color = color;
+		return component;
 
 	}
 
-    public void OnDamage(int amount, Vector2 force) {
+	private ColoredSpray CreateSpray() {
 
-        var splatter = CreateSplatter();
-        splatter.direction = force;
+		GameObject spray = Instantiate(sprayPrefab);
+		spray.name = $"{gameObject.name} {sprayPrefab.name}";
+		spray.transform.position = transform.position;
+		ColoredSpray component = spray.GetComponent<ColoredSpray>();
+		component.color = color;
+		component.distance = sprayDistance;
+		return component;
 
-        if(GetComponent<Healthbar>().current == 0) {
+	}
 
-            foreach(Vector2 randForce in Vector2Random.AngledOffsetArray(force, -splatterRange, +splatterRange, splatterCount)) {
-                var randSplatter = CreateSplatter();
-                randSplatter.direction = randForce;
-            }
+	public void OnDamage(int amount, Vector2 force) {
 
-            foreach(Vector2 randForce in Vector2Random.AngledOffsetArray(force, -sprayRange, +sprayRange, sprayCount)) {
-                var randSpray = CreateSpray();
-                randSpray.direction = randForce;
+		var splatter = CreateSplatter();
+		splatter.direction = force;
+
+		if(GetComponent<Healthbar>().current == 0) {
+
+			foreach(Vector2 randForce in Vector2Random.AngledOffsetArray(force, -splatterRange, +splatterRange, splatterCount)) {
+				var randSplatter = CreateSplatter();
+				randSplatter.direction = randForce;
 			}
 
-            Destroy(gameObject);
+			foreach(Vector2 randForce in Vector2Random.AngledOffsetArray(force, -sprayRange, +sprayRange, sprayCount)) {
+				var randSpray = CreateSpray();
+				randSpray.direction = randForce;
+			}
 
-        }
+			Despawn();
+
+		}
 
 	}
 
-    public void FirePrimary() {
-        CreateProjectile();
+	public void FirePrimary() {
+
+		float now = Time.time;
+
+		float timeSinceBurst = now - lastBurst;
+		bool startNewBurst = timeSinceBurst >= burstPeriod;
+
+		if(startNewBurst) {
+			lastBurst = now;
+			lastFire = float.NegativeInfinity;
+			currentBurstCount = 0;
+			StartCoroutine(SignalBurstDelayCoroutine());
+		}
+
+		float timeSinceFire = now - lastFire;
+		bool startNewFire = timeSinceFire >= fireDelay && currentBurstCount < burstCount;
+
+		if(startNewFire) {
+			lastFire = now;
+			currentBurstCount++;
+			CreateProjectile();
+			StartCoroutine(SignalFireDelayCoroutine());
+		}
+
 	}
 
-    public void FireSecondary() {
-        Vector2 mousePos = Camera.main.ScreenToWorldPoint(Mouse.current.position.ReadValue());
-        mousePos = new Vector2(mousePos.x, mousePos.y);
-        GameObject enemy = Instantiate(targetEnemy);
-        enemy.transform.position = (Vector3)mousePos + enemy.transform.position.z * Vector3.forward;
-    }
-
-    public void OnHorizontalMovement(InputAction.CallbackContext context) {
-        movement.horizontal = context.ReadValue<float>();
+	private IEnumerator SignalFireDelayCoroutine() {
+		renderer.color += Color.white * 0.25f;
+		yield return new WaitForSeconds(fireDelay);
+		renderer.color = color;
 	}
 
-    public void OnVerticalMovement(InputAction.CallbackContext context) {
-        movement.vertical = context.ReadValue<float>();
+	private IEnumerator SignalBurstDelayCoroutine() {
+		float duration = reloadBurstEmitter.main.duration;
+		yield return new WaitForSeconds(burstPeriod - duration);
+		reloadBurstEmitter.Play();
+		yield return new WaitForSeconds(duration);
+		renderer.color = Color.white;
+		yield return new WaitForSeconds(0.05f);
+		yield return new WaitForEndOfFrame();
+		reloadBurstEmitter.Stop();
+		renderer.color = color;
 	}
 
-    public void OnPrimaryTrigger(InputAction.CallbackContext context) {
-        if(context.phase == InputActionPhase.Started) FirePrimary();
+	public bool CanFirePrimary() {
+
+		float now = Time.time;
+
+		float timeSinceBurst = now - lastBurst;
+		bool startNewBurst = timeSinceBurst >= burstPeriod;
+
+		if(startNewBurst) {
+			return true;
+		}
+
+		float timeSinceFire = now - lastFire;
+		bool startNewFire = timeSinceFire >= fireDelay && currentBurstCount < burstCount;
+
+		if(startNewFire) {
+			return true;
+		}
+
+		return false;
+
 	}
 
-    public void OnSecondaryTrigger(InputAction.CallbackContext context) {
-        if(context.phase == InputActionPhase.Started) FireSecondary();
+	public void FireSecondary() {
+
 	}
 
-    public struct Movement {
-        public float horizontal;
-        public float vertical;
+	public void OnHorizontalMovement(InputAction.CallbackContext context) {
+		movement.horizontal = context.ReadValue<float>();
+	}
+
+	public void OnVerticalMovement(InputAction.CallbackContext context) {
+		movement.vertical = context.ReadValue<float>();
+	}
+
+	public void OnPrimaryTrigger(InputAction.CallbackContext context) {
+		if(context.phase == InputActionPhase.Started) FirePrimary();
+	}
+
+	public void OnSecondaryTrigger(InputAction.CallbackContext context) {
+		if(context.phase == InputActionPhase.Started) FireSecondary();
+	}
+
+	public struct Movement {
+		public float horizontal;
+		public float vertical;
 
 		public void Validate() {
 			if(horizontal > +1.0f) horizontal = +1.0f;
@@ -492,6 +592,6 @@ public class PlayerController : MonoBehaviour
 			else if(vertical < -1.0f) vertical = -1.0f;
 		}
 
-    }
+	}
 
 }
